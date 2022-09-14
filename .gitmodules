@@ -1,0 +1,3 @@
+[submodule "stanza-train"]
+	path = stanza-train
+	url = https://github.com/NKWBTB/stanza-train.git
