@@ -2,3 +2,6 @@ DATASET_FOLDER = 'Data/BioRED'
 TRAIN_FILE = "Train.BioC.JSON"
 DEV_FILE = "Dev.BioC.JSON"
 TEST_FILE = "Test.BioC.JSON"
+
+LANG = "en"
+DATASET = "BioRED"
