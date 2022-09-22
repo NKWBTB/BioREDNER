@@ -1,0 +1,1 @@
+python -m stanza.utils.training.run_ner en_biored --max_steps 10000 --charlm pubmed --bert_model alvaroalon2/biobert_chemical_ner --batch_size 256 --optim adam --lr 1e-3 

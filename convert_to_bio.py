@@ -1,3 +1,4 @@
+from heapq import merge
 import stanza
 import stanza.utils.default_paths as default_paths
 from stanza.utils import datasets
@@ -16,6 +17,7 @@ nlp = stanza.Pipeline(lang='en', processors='tokenize', tokenize_no_ssplit=True)
 
 def convert(data, dump_to=None):
     converted_data = []
+    merge_count = 0
     for doc in tqdm(data["documents"]):
         for passage in doc["passages"]:
             text = passage["text"]
@@ -50,7 +52,40 @@ def convert(data, dump_to=None):
                 sample.append(token_info)
                 if extra_token:
                     sample.append(extra_token)
-            converted_data.append(sample)
+            
+            # Exceed length limit
+            limit = 256
+            if len(sample) > limit:
+                merge_count += 1
+                logger.warning("Token number exceeds limit")
+                # Segment by period
+                split_samples = []
+                new_sample = []
+                for token_info in sample:
+                    new_sample.append(token_info)
+                    if token_info["text"] == '.' and token_info['label'] == 'O':
+                        split_samples.append(new_sample)
+                        new_sample = []
+                if len(new_sample) > 0: split_samples.append(new_sample)
+                
+                print("Sent lengths:", [len(sample) for sample in split_samples])
+                # Merge by maximum space allow
+                merge_samples = []
+                new_sample = []
+                for sample in split_samples:
+                    if len(new_sample) + len(sample) <= limit:
+                        new_sample.extend(sample)
+                    else:
+                        merge_samples.append(new_sample)
+                        new_sample = []
+                        new_sample.extend(sample)
+                if len(new_sample) > 0: merge_samples.append(new_sample)
+                converted_data.extend(merge_samples)
+                print("New lengths: ", [len(sample) for sample in merge_samples])
+            else:
+                converted_data.append(sample)
+    
+    print(merge_count)
 
     with open(dump_to, "w", encoding="UTF-8") as f:
         for sample in converted_data:
@@ -69,7 +104,7 @@ if __name__ == '__main__':
         except OSError as exc: # Guard against rare conditions
             if exc.errno != errno.EEXIST:
                 raise
-    shortname = CFG.LANG + "_" + CFG.DATASET
+    shortname = (CFG.LANG + "_" + CFG.DATASET).lower()
 
     dataset = {"train": CFG.TRAIN_FILE, "dev": CFG.DEV_FILE, "test": CFG.TEST_FILE}
 
