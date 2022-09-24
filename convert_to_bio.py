@@ -1,4 +1,3 @@
-from heapq import merge
 import stanza
 import stanza.utils.default_paths as default_paths
 from stanza.utils import datasets
