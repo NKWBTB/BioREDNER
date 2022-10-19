@@ -3,6 +3,7 @@ import os
 import config as CFG
 import spacy
 import networkx as nx
+import csv
 from tqdm import tqdm
 
 typedict = {
@@ -21,7 +22,7 @@ def normalize(text):
     text = text.replace(")", "")
     return text
 
-def convert(data):
+def mine_pattern(data, pattern_count):
     for doc in tqdm(data["documents"]):
         # 1. replace the entity mentions with their entity types (GENE, DISEASE, CHEMICAL, VARIANT) and IDs
         norm_id = {}
@@ -33,17 +34,16 @@ def convert(data):
             edits = []
             for annot in passage["annotations"]:
                 entity_id = annot["infons"]["identifier"]
-                ids = entity_id.split(",")
-                
+                entity_type = annot["infons"]["type"]
+                if not entity_type in typedict: continue
+
                 # Normalize ids (prevent tokenizer split)
+                ids = entity_id.split(",")
                 new_id = []
                 for id in ids:
                     if not id in norm_id:
                         norm_id[id] = str(len(norm_id))
                     new_id.append(norm_id[id])
-
-                entity_type = annot["infons"]["type"]
-                if not entity_type in typedict: continue
                 
                 # Memorize all the substitution in a dictionary
                 substitude = typedict[entity_type]+ "_" + "_".join(new_id)
@@ -89,7 +89,6 @@ def convert(data):
 
         # 2. Find the shortest path from the head entity to the tail entity
         graph = nx.Graph(edges)
-        pattern_count = {}
         for relation in doc["relations"]:
             for head_entity in mention_dict[relation["infons"]["entity1"]]:
                 for tail_entity in mention_dict[relation["infons"]["entity2"]]:
@@ -112,9 +111,9 @@ def convert(data):
                         print(head_entity, tail_entity)
                         assert False
                 
-        print(json.dumps(pattern_count, indent=2))
 
 if __name__ == '__main__':
+    pattern_count = {}
     dataset = {"train": CFG.TRAIN_FILE, "dev": CFG.DEV_FILE, "test": CFG.TEST_FILE}
 
     for data_split, data_file in dataset.items():
@@ -124,4 +123,12 @@ if __name__ == '__main__':
         with open(data_file, "r", encoding="UTF-8") as f:
             data = json.load(f)
 
-        convert(data)
+        mine_pattern(data, pattern_count)
+
+    freq_pattern = [(freq, pattern) for pattern, freq in pattern_count.items()]
+    freq_pattern = sorted(freq_pattern, reverse=True)
+
+    with open("output.csv", "w", encoding="UTF-8") as f:
+        writer = csv.writer(f, delimiter='\t')
+        for freq, pattern in freq_pattern:
+            writer.writerow([pattern, freq])
