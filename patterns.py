@@ -93,11 +93,13 @@ def mine_pattern(data, pattern_count):
                 for v in tail_entity:
                     paths = nx.all_shortest_paths(graph, source=u, target=v)
                     for path in paths:
-                        shortest_paths.setdefault(len(path), []).append(path)
+                        shortest_paths.setdefault(len(path), []).append(path.copy())
             
             min_len = min(shortest_paths.keys())
             for path in shortest_paths[min_len]:
                 pattern = []
+                # Truncate head and tail
+                path = path[1:-1]
                 for node in path:
                     if spacy_doc[node].text in mention_set:
                         pattern.append(spacy_doc[node].text.split("_")[0])
@@ -106,6 +108,7 @@ def mine_pattern(data, pattern_count):
                 
                 #3. Count the frequency of the paths. 
                 pattern_text = " ".join(pattern)
+                if len(pattern_text) == 0: pattern_text = " "
                 if not pattern_text in pattern_count:
                     pattern_count[pattern_text] = 1
                 else:
