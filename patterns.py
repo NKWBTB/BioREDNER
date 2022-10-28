@@ -70,6 +70,7 @@ def mine_pattern(data, pattern_count):
                 id = norm2id[norm_id]
                 id2node.setdefault(id, set()).add(token.i)
         
+        # 2. Form document graphs for each document
         edges = []
         last_root = -1
         for token in spacy_doc:
@@ -83,7 +84,7 @@ def mine_pattern(data, pattern_count):
                 edges.append((token.i, child.i))
         graph = nx.Graph(edges)
 
-        # 2. Find the shortest path from the head entity to the tail entity
+        # 3. Find the shortest path from the head entity to the tail entity
         for relation in doc["relations"]:
             head_entity = id2node[relation["infons"]["entity1"]]
             tail_entity = id2node[relation["infons"]["entity2"]]
@@ -106,9 +107,9 @@ def mine_pattern(data, pattern_count):
                     else:
                         pattern.append(spacy_doc[node].text.lower())
                 
-                #3. Count the frequency of the paths. 
+                # 4. Count the frequency of the paths. 
                 pattern_text = " ".join(pattern)
-                if len(pattern_text) == 0: pattern_text = " "
+                if len(pattern_text) == 0: pattern_text = " "                    
                 if not pattern_text in pattern_count:
                     pattern_count[pattern_text] = 1
                 else:
